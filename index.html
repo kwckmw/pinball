@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>오늘 뭐 먹지? - 50:50 핀볼 추첨기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background: radial-gradient(circle at center, #111a2e 0%, #080c16 100%);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .gold-cabinet {
+      background: linear-gradient(135deg, #f7d070 0%, #d49a37 25%, #ffea9f 50%, #b87b1e 75%, #fae18c 100%);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -3px 5px rgba(0,0,0,0.5);
+    }
+    .inner-board {
+      background: radial-gradient(ellipse at top, #0f62a4 0%, #0a3a68 50%, #061e38 100%);
+      box-shadow: inset 0 0 16px rgba(0,0,0,0.8);
+    }
+    .btn-3d-yellow {
+      background: linear-gradient(180deg, #ffd747 0%, #f39c12 100%);
+      box-shadow: 0 4px 0 #b7791f, 0 6px 12px rgba(0,0,0,0.4);
+      transition: all 0.1s ease;
+    }
+    .btn-3d-yellow:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b7791f, 0 3px 6px rgba(0,0,0,0.4);
+    }
+    .btn-3d-blue {
+      background: linear-gradient(180deg, #3498db 0%, #217dbb 100%);
+      box-shadow: 0 3px 0 #185a86, 0 6px 10px rgba(0,0,0,0.3);
+      transition: all 0.1s ease;
+    }
+    .btn-3d-blue:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #185a86, 0 2px 4px rgba(0,0,0,0.3);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
+      50% { box-shadow: 0 0 18px rgba(255, 235, 59, 1); }
+    }
+    .slot-winner {
+      animation: pulseGlow 0.9s infinite alternate;
+      border-color: #ffe600 !important;
+      background: linear-gradient(180deg, rgba(255, 230, 0, 0.4) 0%, rgba(200, 140, 0, 0.5) 100%) !important;
+    }
+    .menu-text {
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      line-height: 1.1;
+    }
+    /* 가로 스크롤바 숨김 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="h-[100dvh] max-h-[100dvh] overflow-hidden text-white flex flex-col items-center justify-between px-3 py-1 sm:py-2 box-border">
+
+  <!-- 1. 상단 헤더 -->
+  <header class="w-full max-w-md flex items-center justify-between py-0.5">
+    <div class="flex items-center space-x-2">
+      <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-md text-sm sm:text-base border-2 border-amber-200">
+        🍴
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-black text-amber-300 tracking-tight leading-none drop-shadow">오늘 뭐 먹지?</h1>
+        <p class="text-[9px] sm:text-[10px] text-blue-200/80 font-medium mt-0.5">50:50 확률 갈톤보드 핀볼 추첨기</p>
+      </div>
+    </div>
+    <button id="soundToggleBtn" class="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] sm:text-[11px] font-bold text-amber-300 hover:bg-slate-700 transition">
+      <span id="soundIcon">🔊</span>
+      <span id="soundText" class="whitespace-nowrap">소리 ON</span>
+    </button>
+  </header>
+
+  <!-- 2. 컨트롤 바 1: 음식 카테고리 선택 (전체, 한식, 중식, 일식, 양식, 분식) -->
+  <div class="w-full max-w-md flex items-center space-x-1 overflow-x-auto no-scrollbar py-0.5" id="categoryTabGroup">
+    <button data-cat="all" class="cat-btn px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] whitespace-nowrap shadow">전체 (210+)</button>
+    <button data-cat="korean" class="cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700">한식</button>
+    <button data-cat="chinese" class="cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700">중식</button>
+    <button data-cat="japanese" class="cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700">일식</button>
+    <button data-cat="western" class="cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700">양식</button>
+    <button data-cat="bunsik" class="cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700">분식/야식</button>
+  </div>
+
+  <!-- 3. 컨트롤 바 2: 메뉴 수 & ? 핀 안내 -->
+  <div class="w-full max-w-md flex items-center justify-between px-2.5 py-1 bg-slate-900/60 rounded-xl border border-slate-800 text-[11px]">
+    <div class="flex items-center space-x-1.5">
+      <span class="text-slate-400 font-semibold whitespace-nowrap">메뉴 수:</span>
+      <div class="flex space-x-1" id="slotCountGroup">
+        <button data-count="4" class="slot-cnt-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-black font-bold">4</button>
+        <button data-count="5" class="slot-cnt-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-black font-bold">5</button>
+        <button data-count="6" class="slot-cnt-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-black font-bold">6</button>
+        <button data-count="7" class="slot-cnt-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-black font-bold">7</button>
+        <button data-count="8" class="slot-cnt-btn px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black shadow">8</button>
+      </div>
+    </div>
+    <div class="flex items-center space-x-1 bg-purple-950/80 text-purple-200 border border-purple-600/50 px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap">
+      <span class="w-3.5 h-3.5 rounded-full bg-purple-500 text-white font-bold inline-flex items-center justify-center text-[9px]">?</span>
+      <span>랜덤 찬스 핀</span>
+    </div>
+  </div>
+
+  <!-- 4. 메인 게임 보드 -->
+  <main class="w-full max-w-md flex-1 flex flex-col items-center justify-center my-1 min-h-0">
+    <div class="gold-cabinet p-2 rounded-2xl w-full flex flex-col justify-center">
+      <div class="inner-board rounded-xl relative overflow-hidden flex flex-col items-center p-1.5">
+
+        <!-- 상태 안내 배너 -->
+        <div id="statusBanner" class="z-20 w-auto px-3 py-1 mb-1 rounded-full bg-blue-950/85 border border-sky-400/40 text-center shadow transition-all">
+          <span id="statusText" class="text-[11px] sm:text-xs font-bold text-sky-100 whitespace-nowrap flex items-center justify-center gap-1">
+            <span class="text-amber-400">⬇</span> 공을 떨어뜨려 메뉴를 결정하세요!
+          </span>
+        </div>
+
+        <!-- 핀볼 캔버스 -->
+        <div class="relative w-full aspect-[4/3.55] max-h-[44vh]">
+          <canvas id="pinballCanvas" class="w-full h-full block rounded-lg"></canvas>
+        </div>
+
+        <!-- 하단 식사 메뉴 슬롯 바 -->
+        <div id="slotBar" class="w-full grid gap-1 mt-1 z-10 pt-1 border-t border-amber-400/40">
+          <!-- 동적 생성 -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 하단 힌트 바 -->
+    <div class="w-full mt-1 px-2.5 py-1 bg-slate-900/80 border border-slate-800 rounded-lg flex items-center justify-between text-[11px]">
+      <span class="text-slate-400 whitespace-nowrap">💡 각 카드를 <b>클릭</b>해 메뉴명 즉시 수정</span>
+      <span id="luckyBadge" class="hidden font-black text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/40 whitespace-nowrap text-[10px]">
+        ✨ 럭키 찬스 발동!
+      </span>
+    </div>
+  </main>
+
+  <!-- 5. 하단 액션 버튼 -->
+  <footer class="w-full max-w-md flex items-center space-x-2.5 pb-1">
+    <button id="shuffleBtn" class="btn-3d-blue flex-1 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm text-white flex items-center justify-center space-x-1 whitespace-nowrap">
+      <span>🔄</span>
+      <span>메뉴 셔플</span>
+    </button>
+    <button id="dropBtn" class="btn-3d-yellow flex-[1.6] py-2.5 sm:py-3 rounded-xl font-black text-sm sm:text-base text-amber-950 flex items-center justify-center space-x-1.5 tracking-wide whitespace-nowrap">
+      <span>▶</span>
+      <span>공 떨어뜨리기!</span>
+    </button>
+  </footer>
+
+  <script>
+    // 210개 이상의 상세 식사 메뉴 데이터베이스 (카테고리별 분리)
+    const MENU_DATABASE = {
+      korean: [
+        { name: '김치찌개', emoji: '🥘' }, { name: '된장찌개', emoji: '🍲' }, { name: '제육볶음', emoji: '🥩' },
+        { name: '돼지불고기', emoji: '🥓' }, { name: '소불고기', emoji: '🥩' }, { name: '순두부찌개', emoji: '🍲' },
+        { name: '삼겹살', emoji: '🥓' }, { name: '돼지목살', emoji: '🥩' }, { name: '보쌈정식', emoji: '🥬' },
+        { name: '족발', emoji: '🍖' }, { name: '갈비탕', emoji: '🥣' }, { name: '설렁탕', emoji: '🥣' },
+        { name: '순대국밥', emoji: '🥣' }, { name: '돼지국밥', emoji: '🥣' }, { name: '콩나물국밥', emoji: '🥣' },
+        { name: '뼈해장국', emoji: '🍲' }, { name: '육개장', emoji: '🥣' }, { name: '닭볶음탕', emoji: '🍗' },
+        { name: '안동찜닭', emoji: '🍗' }, { name: '삼계탕', emoji: '🍲' }, { name: '전주비빔밥', emoji: '🥗' },
+        { name: '돌솥비빔밥', emoji: '🍲' }, { name: '부대찌개', emoji: '🥘' }, { name: '청국장', emoji: '🍲' },
+        { name: '고등어구이', emoji: '🐟' }, { name: '갈치조림', emoji: '🐟' }, { name: '오징어볶음', emoji: '🦑' },
+        { name: '낙지볶음', emoji: '🐙' }, { name: '쭈꾸미볶음', emoji: '🐙' }, { name: '간장게장', emoji: '🦀' },
+        { name: '양념게장', emoji: '🦀' }, { name: '소곱창구이', emoji: '🥩' }, { name: '곱창전골', emoji: '🥘' },
+        { name: '감자탕', emoji: '🥘' }, { name: '소갈비찜', emoji: '🍖' }, { name: '매운갈비찜', emoji: '🍖' },
+        { name: '떡갈비', emoji: '🥩' }, { name: '육회비빔밥', emoji: '🥩' }, { name: '황태해장국', emoji: '🥣' },
+        { name: '도토리묵밥', emoji: '🥣' }, { name: '수제비', emoji: '🥣' }, { name: '칼국수', emoji: '🍜' },
+        { name: '바지락칼국수', emoji: '🍜' }, { name: '장칼국수', emoji: '🍜' }, { name: '들깨칼국수', emoji: '🍜' },
+        { name: '잔치국수', emoji: '🍜' }, { name: '비빔국수', emoji: '🍜' }, { name: '열무국수', emoji: '🍜' },
+        { name: '콩국수', emoji: '🥣' }, { name: '도가니탕', emoji: '🥣' }, { name: '추어탕', emoji: '🥣' },
+        { name: '김치찜', emoji: '🥘' }, { name: '차돌된장찌개', emoji: '🍲' }, { name: '우렁된장쌈밥', emoji: '🥬' }
+      ],
+      chinese: [
+        { name: '자장면', emoji: '🥢' }, { name: '간짜장', emoji: '🥢' }, { name: '삼선짜장', emoji: '🥢' },
+        { name: '짬뽕', emoji: '🥣' }, { name: '차돌짬뽕', emoji: '🥣' }, { name: '백짬뽕', emoji: '🥣' },
+        { name: '굴짬뽕', emoji: '🥣' }, { name: '탕수육', emoji: '🥟' }, { name: '찹쌀탕수육', emoji: '🥟' },
+        { name: '꿔바로우', emoji: '🥩' }, { name: '중화볶음밥', emoji: '🍚' }, { name: '마파두부덮밥', emoji: '🍛' },
+        { name: '잡채밥', emoji: '🍛' }, { name: '유산슬덮밥', emoji: '🍛' }, { name: '고추잡채', emoji: '🫑' },
+        { name: '깐풍기', emoji: '🍗' }, { name: '유린기', emoji: '🥗' }, { name: '라조기', emoji: '🍗' },
+        { name: '칠리새우', emoji: '🦐' }, { name: '크림새우', emoji: '🍤' }, { name: '멘보샤', emoji: '🍞' },
+        { name: '마라탕', emoji: '🍲' }, { name: '마라샹궈', emoji: '🥘' }, { name: '양장피', emoji: '🥗' },
+        { name: '팔보채', emoji: '🥘' }, { name: '동파육', emoji: '🥩' }, { name: '우육면', emoji: '🍜' },
+        { name: '탄탄멘', emoji: '🍜' }, { name: '샤오롱바오', emoji: '🥟' }, { name: '하가우딤섬', emoji: '🥟' },
+        { name: '군만두', emoji: '🥟' }, { name: '물만두', emoji: '🥟' }, { name: '어향가지', emoji: '🍆' },
+        { name: '토마토달걀볶음', emoji: '🍅' }, { name: '난자완스', emoji: '🧆' }, { name: '누룽지탕', emoji: '🍲' },
+        { name: '볶음짬뽕', emoji: '🥢' }, { name: '쟁반짜장', emoji: '🥢' }, { name: '사천탕수육', emoji: '🥩' },
+        { name: '중화냉면', emoji: '🍜' }
+      ],
+      japanese: [
+        { name: '모둠초밥', emoji: '🍣' }, { name: '연어초밥', emoji: '🍣' }, { name: '광어초밥', emoji: '🍣' },
+        { name: '소고기불초밥', emoji: '🍣' }, { name: '후토마키', emoji: '🍙' }, { name: '로스가츠(등심)', emoji: '🍱' },
+        { name: '히레가츠(안심)', emoji: '🍱' }, { name: '치즈돈카츠', emoji: '🧀' }, { name: '경양식돈까스', emoji: '🍱' },
+        { name: '사케동(연어덮밥)', emoji: '🍚' }, { name: '규동(소고기덮밥)', emoji: '🍚' }, { name: '가츠동(돈까스덮밥)', emoji: '🍚' },
+        { name: '에비동(새우덮밥)', emoji: '🍤' }, { name: '오야꼬동(닭고기덮밥)', emoji: '🍚' }, { name: '차슈덮밥', emoji: '🍚' },
+        { name: '텐동(튀김덮밥)', emoji: '🍤' }, { name: '우나기동(장어덮밥)', emoji: '🐟' }, { name: '돈코츠라멘', emoji: '🍜' },
+        { name: '미소라멘', emoji: '🍜' }, { name: '쇼유라멘', emoji: '🍜' }, { name: '시오라멘', emoji: '🍜' },
+        { name: '카라구치라멘', emoji: '🍜' }, { name: '마제소바', emoji: '🍜' }, { name: '츠케멘', emoji: '🍜' },
+        { name: '사누키우동', emoji: '🍲' }, { name: '튀김우동', emoji: '🍤' }, { name: '김치나베우동', emoji: '🍲' },
+        { name: '붓카케우동', emoji: '🍜' }, { name: '판모밀소바', emoji: '🍜' }, { name: '냉모밀', emoji: '🍜' },
+        { name: '온소바', emoji: '🍜' }, { name: '일본식카레', emoji: '🍛' }, { name: '가라아게카레', emoji: '🍛' },
+        { name: '스키야키', emoji: '🍲' }, { name: '샤브샤브', emoji: '🍲' }, { name: '모츠나베', emoji: '🍲' },
+        { name: '야키토리', emoji: '🍢' }, { name: '오코노미야키', emoji: '🥞' }, { name: '야키소바', emoji: '🥢' },
+        { name: '타코야키', emoji: '🐙' }
+      ],
+      western: [
+        { name: '토마토파스타', emoji: '🍝' }, { name: '까르보나라', emoji: '🍝' }, { name: '봉골레파스타', emoji: '🍝' },
+        { name: '알리오올리오', emoji: '🍝' }, { name: '투움바파스타', emoji: '🍝' }, { name: '로제파스타', emoji: '🍝' },
+        { name: '바질페스토파스타', emoji: '🍝' }, { name: '라자냐', emoji: '🧀' }, { name: '뇨끼', emoji: '🥔' },
+        { name: '포르치니리조또', emoji: '🍚' }, { name: '먹물리조또', emoji: '🦑' }, { name: '비프스테이크', emoji: '🥩' },
+        { name: '안심스테이크', emoji: '🥩' }, { name: '찹스테이크', emoji: '🥩' }, { name: '바베큐폭립', emoji: '🍖' },
+        { name: '치즈버거', emoji: '🍔' }, { name: '베이컨수제버거', emoji: '🍔' }, { name: '치킨버거', emoji: '🍔' },
+        { name: '새우버거', emoji: '🍔' }, { name: '페퍼로니피자', emoji: '🍕' }, { name: '고르곤졸라피자', emoji: '🍕' },
+        { name: '마르게리따피자', emoji: '🍕' }, { name: '포테이토피자', emoji: '🍕' }, { name: '시카고피자', emoji: '🍕' },
+        { name: '루꼴라피자', emoji: '🍕' }, { name: '시저샐러드', emoji: '🥗' }, { name: '리코타치즈샐러드', emoji: '🥗' },
+        { name: '감바스알아히요', emoji: '🦐' }, { name: '에그베네딕트', emoji: '🍳' }, { name: '클럽샌드위치', emoji: '🥪' },
+        { name: '잠봉뵈르', emoji: '🥖' }, { name: '서브웨이', emoji: '🥪' }, { name: '소고기타코', emoji: '🌮' },
+        { name: '치킨퀘사디아', emoji: '🧀' }, { name: '치미창가', emoji: '🌯' }, { name: '브리또볼', emoji: '🥗' },
+        { name: '비프필라프', emoji: '🍛' }, { name: '목살스테이크샐러드', emoji: '🥗' }, { name: '양송이스프&바게트', emoji: '🥣' }
+      ],
+      bunsik: [
+        { name: '매콤떡볶이', emoji: '🍢' }, { name: '로제떡볶이', emoji: '🥘' }, { name: '짜장떡볶이', emoji: '🥘' },
+        { name: '마라떡볶이', emoji: '🥘' }, { name: '라볶이', emoji: '🍜' }, { name: '찰순대', emoji: '🍢' },
+        { name: '모둠튀김', emoji: '🍤' }, { name: '야채튀김', emoji: '🥕' }, { name: '김말이튀김', emoji: '🥢' },
+        { name: '오징어튀김', emoji: '🦑' }, { name: '원조야채김밥', emoji: '🍙' }, { name: '참치마요김밥', emoji: '🍙' },
+        { name: '치즈김밥', emoji: '🧀' }, { name: '돈까스김밥', emoji: '🍱' }, { name: '땡초김밥', emoji: '🌶️' },
+        { name: '충무김밥', emoji: '🍙' }, { name: '꼬마김밥', emoji: '🍙' }, { name: '쫄면', emoji: '🍜' },
+        { name: '어묵탕(오뎅)', emoji: '🍢' }, { name: '물떡', emoji: '🍢' }, { name: '김치볶음밥', emoji: '🍳' },
+        { name: '스팸마요덮밥', emoji: '🍚' }, { name: '치킨마요덮밥', emoji: '🍚' }, { name: '소떡소떡', emoji: '🍢' },
+        { name: '닭강정', emoji: '🍗' }, { name: '양념치킨', emoji: '🍗' }, { name: '후라이드치킨', emoji: '🍗' },
+        { name: '뿌링클치킨', emoji: '🍗' }, { name: '불닭발', emoji: '🐓' }, { name: '오돌뼈&주먹밥', emoji: '🍙' },
+        { name: '베트남쌀국수', emoji: '🍜' }, { name: '소고기쌀국수', emoji: '🍜' }, { name: '팟타이', emoji: '🥢' },
+        { name: '나시고랭', emoji: '🍛' }, { name: '분짜', emoji: '🥗' }, { name: '똠얌꿍', emoji: '🍲' },
+        { name: '인도버터치킨커리', emoji: '🍛' }, { name: '난&커리세트', emoji: '🫓' }, { name: '토스트', emoji: '🍞' },
+        { name: '핫도그', emoji: '🌭' }
+      ]
+    };
+
+    // 전체 메뉴 풀 합본 (210개 이상)
+    MENU_DATABASE.all = [
+      ...MENU_DATABASE.korean,
+      ...MENU_DATABASE.chinese,
+      ...MENU_DATABASE.japanese,
+      ...MENU_DATABASE.western,
+      ...MENU_DATABASE.bunsik
+    ];
+
+    let currentCategory = 'all';
+    let slotCount = 8;
+    let currentMenus = [];
+    let isDropping = false;
+    let soundEnabled = true;
+
+    // Web Audio 사운드
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioCtx();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'hit') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(540 + Math.random() * 80, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        } else if (type === 'special') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.22);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.frequency.setValueAtTime(freq, now + idx * 0.07);
+            g.gain.setValueAtTime(0.18, now + idx * 0.07);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.22);
+            o.start(now + idx * 0.07);
+            o.stop(now + idx * 0.07 + 0.22);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 선택된 카테고리에서 메뉴 셔플
+    function shuffleMenus() {
+      const pool = MENU_DATABASE[currentCategory] || MENU_DATABASE.all;
+      const shuffled = [...pool].sort(() => 0.5 - Math.random());
+      currentMenus = shuffled.slice(0, slotCount);
+      renderSlotBar();
+      resetBoardState();
+    }
+
+    const slotBar = document.getElementById('slotBar');
+    function renderSlotBar() {
+      slotBar.style.gridTemplateColumns = `repeat(${slotCount}, minmax(0, 1fr))`;
+      slotBar.innerHTML = '';
+
+      let fontClass = 'text-[10px]';
+      if (slotCount >= 7) {
+        fontClass = 'text-[9px] sm:text-[9.5px]';
+      } else if (slotCount >= 5) {
+        fontClass = 'text-[10px] sm:text-[10.5px]';
+      } else {
+        fontClass = 'text-xs sm:text-sm';
+      }
+
+      currentMenus.forEach((menu, index) => {
+        const slot = document.createElement('div');
+        slot.className = `slot-card cursor-pointer py-1 px-0.5 min-h-[50px] rounded-lg border border-amber-500/30 bg-slate-900/90 flex flex-col items-center justify-between transition-all duration-200 hover:border-amber-400 hover:bg-slate-800 text-center`;
+        slot.title = '클릭하여 메뉴 이름 수정';
+        slot.innerHTML = `
+          <div class="text-sm select-none leading-none">${menu.emoji}</div>
+          <div class="menu-text ${fontClass} font-bold text-amber-100 w-full px-0.5 my-auto">
+            ${menu.name}
+          </div>
+          <div class="text-[7.5px] text-amber-400/70 font-mono leading-none">#${index + 1}</div>
+        `;
+
+        slot.onclick = () => {
+          if (isDropping) return;
+          const newName = prompt(`[슬롯 #${index + 1}] 새로운 메뉴 이름을 입력하세요:`, menu.name);
+          if (newName && newName.trim() !== '') {
+            currentMenus[index].name = newName.trim();
+            renderSlotBar();
+          }
+        };
+
+        slotBar.appendChild(slot);
+      });
+    }
+
+    const canvas = document.getElementById('pinballCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      W = rect.width;
+      H = rect.height;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      setupPins();
+    }
+
+    let pins = [];
+    let shockwaves = [];
+    let particles = [];
+
+    function setupPins() {
+      pins = [];
+      const rows = slotCount;
+      const startY = H * 0.10;
+      const endY = H * 0.88;
+      const rowGap = (endY - startY) / (rows - 0.5);
+
+      for (let r = 0; r < rows; r++) {
+        const count = r + 1;
+        const pinSpacing = W * 0.84 / rows;
+        const rowWidth = (count - 1) * pinSpacing;
+        const startX = (W - rowWidth) / 2;
+
+        for (let c = 0; c < count; c++) {
+          pins.push({
+            r: r,
+            c: c,
+            x: startX + c * pinSpacing,
+            y: startY + r * rowGap,
+            radius: Math.min(W * 0.022, 6.5),
+            isSpecial: false,
+            highlight: 0
+          });
+        }
+      }
+
+      randomizeSpecialPin();
+    }
+
+    function randomizeSpecialPin() {
+      pins.forEach(p => p.isSpecial = false);
+      const rows = slotCount;
+      const minRow = 1;
+      const maxRow = Math.max(1, rows - 2);
+      const middleCandidates = pins.filter(p => p.r >= minRow && p.r <= maxRow);
+
+      if (middleCandidates.length > 0) {
+        const picked = middleCandidates[Math.floor(Math.random() * middleCandidates.length)];
+        picked.isSpecial = true;
+      }
+    }
+
+    let ball = null;
+    let luckyTriggered = false;
+
+    class Ball {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.active = false;
+        this.x = W / 2;
+        this.y = -20;
+        this.radius = Math.min(W * 0.035, 10.5);
+        this.trail = [];
+        this.currentStep = 0;
+        this.path = [];
+      }
+
+      generatePath() {
+        this.path = [];
+        let currentC = 0;
+        this.path.push({ r: 0, c: 0 });
+
+        for (let r = 1; r < slotCount; r++) {
+          const goRight = Math.random() < 0.5;
+          if (goRight) currentC += 1;
+          this.path.push({ r: r, c: currentC });
+        }
+        this.finalSlot = currentC;
+      }
+
+      start() {
+        this.reset();
+        this.generatePath();
+        this.active = true;
+        this.x = W / 2;
+        this.y = H * 0.02;
+        this.currentStep = 0;
+        luckyTriggered = false;
+        document.getElementById('luckyBadge').classList.add('hidden');
+        this.startX = this.x;
+        this.startY = this.y;
+        this.animTime = 0;
+      }
+
+      update() {
+        if (!this.active) return;
+
+        this.trail.unshift({ x: this.x, y: this.y, alpha: 1 });
+        if (this.trail.length > 7) this.trail.pop();
+        this.trail.forEach(t => t.alpha *= 0.8);
+
+        this.animTime += 0.06;
+
+        if (this.currentStep < this.path.length) {
+          const target = pins.find(p => p.r === this.path[this.currentStep].r && p.c === this.path[this.currentStep].c);
+          if (target) {
+            const t = Math.min(this.animTime, 1);
+            this.x = this.startX + (target.x - this.startX) * t;
+            const arcY = Math.sin(t * Math.PI) * -13;
+            this.y = this.startY + (target.y - this.startY) * t + arcY;
+
+            if (t >= 1) {
+              target.highlight = 1;
+
+              if (target.isSpecial && !luckyTriggered) {
+                luckyTriggered = true;
+                playSound('special');
+                triggerLuckyEvent(target.x, target.y);
+              } else {
+                playSound('hit');
+                createHitSpark(target.x, target.y);
+              }
+
+              this.currentStep++;
+              this.startX = target.x;
+              this.startY = target.y;
+              this.animTime = 0;
+            }
+          }
+        } else {
+          const targetSlotX = (W / slotCount) * (this.finalSlot + 0.5);
+          const targetSlotY = H * 0.98;
+          const t = Math.min(this.animTime, 1);
+
+          this.x = this.startX + (targetSlotX - this.startX) * t;
+          this.y = this.startY + (targetSlotY - this.startY) * t;
+
+          if (t >= 1) {
+            this.active = false;
+            onBallLanded(this.finalSlot);
+          }
+        }
+      }
+
+      draw() {
+        if (!this.active) return;
+
+        this.trail.forEach(t => {
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, this.radius * 0.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0, 242, 254, ${t.alpha * 0.35})`;
+          ctx.fill();
+        });
+
+        ctx.save();
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 12;
+
+        const grad = ctx.createRadialGradient(
+          this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.1,
+          this.x, this.y, this.radius
+        );
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.3, '#00f2fe');
+        grad.addColorStop(0.7, '#4facfe');
+        grad.addColorStop(1, '#9b51e0');
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = '#e0f7fa';
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    function createHitSpark(x, y) {
+      for (let i = 0; i < 5; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.2 + Math.random() * 2;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: 0.09,
+          size: 2,
+          color: '#ffea9f',
+          isStar: false
+        });
+      }
+    }
+
+    function triggerLuckyEvent(x, y) {
+      shockwaves.push({ x, y, radius: 8, maxRadius: 60, alpha: 1 });
+      document.getElementById('luckyBadge').classList.remove('hidden');
+      updateStatusBanner('✨ 럭키 찬스 발동! (곱빼기/디저트 찬스)', true);
+
+      const colors = ['#ff007f', '#00f2fe', '#ffd700', '#9b51e0'];
+      for (let i = 0; i < 18; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.8 + Math.random() * 3.5;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: 0.045,
+          size: 2.8,
+          color: colors[i % colors.length],
+          isStar: true,
+          rot: Math.random() * Math.PI
+        });
+      }
+    }
+
+    function createStarDust(x, y) {
+      for (let i = 0; i < 40; i++) {
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5;
+        const speed = 2.2 + Math.random() * 4.8;
+        particles.push({
+          x: x + (Math.random() - 0.5) * 16,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          gravity: 0.13,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.015,
+          size: 2 + Math.random() * 2.8,
+          color: ['#fff275', '#ffd700', '#ffffff', '#ff9a3c'][Math.floor(Math.random() * 4)],
+          isStar: true,
+          rot: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.25
+        });
+      }
+    }
+
+    function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, rot) {
+      let step = Math.PI / spikes;
+      ctx.beginPath();
+      for (let i = 0; i < 2 * spikes; i++) {
+        let r = (i % 2 === 0) ? outerRadius : innerRadius;
+        let x = cx + Math.cos(i * step + rot) * r;
+        let y = cy + Math.sin(i * step + rot) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function onBallLanded(slotIndex) {
+      playSound('win');
+      isDropping = false;
+      document.getElementById('dropBtn').disabled = false;
+
+      const slots = slotBar.children;
+      for (let s of slots) s.classList.remove('slot-winner');
+      const winSlot = slots[slotIndex];
+      if (winSlot) winSlot.classList.add('slot-winner');
+
+      const slotWidth = W / slotCount;
+      const burstX = slotWidth * (slotIndex + 0.5);
+      createStarDust(burstX, H * 0.96);
+
+      const chosen = currentMenus[slotIndex];
+      const luckyText = luckyTriggered ? ' [★ 럭키 곱빼기 당첨!]' : '';
+      updateStatusBanner(`🎉 오늘의 선택: <b>${chosen.emoji} ${chosen.name}</b>${luckyText}`, false);
+    }
+
+    function updateStatusBanner(html, isHighlight) {
+      const banner = document.getElementById('statusBanner');
+      const text = document.getElementById('statusText');
+      text.innerHTML = html;
+      if (isHighlight) {
+        banner.className = "z-20 w-auto px-3 py-1 mb-1 rounded-full bg-amber-500/20 border border-amber-400 text-center shadow transition-all animate-pulse";
+      } else {
+        banner.className = "z-20 w-auto px-3 py-1 mb-1 rounded-full bg-blue-950/85 border border-amber-400/60 text-center shadow transition-all";
+      }
+    }
+
+    function resetBoardState() {
+      const slots = slotBar.children;
+      for (let s of slots) s.classList.remove('slot-winner');
+      document.getElementById('luckyBadge').classList.add('hidden');
+      updateStatusBanner('<span class="text-amber-400">⬇</span> 공을 떨어뜨려 메뉴를 결정하세요!', false);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      const cols = slotCount;
+      for (let i = 0; i <= cols; i++) {
+        const x = (W / cols) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i <= cols; i++) {
+        const x = (W / cols) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, H * 0.88);
+        ctx.lineTo(x, H);
+        ctx.strokeStyle = 'rgba(247, 208, 112, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      pins.forEach(pin => {
+        if (pin.highlight > 0) pin.highlight -= 0.05;
+
+        ctx.save();
+        if (pin.isSpecial) {
+          ctx.shadowColor = '#d946ef';
+          ctx.shadowBlur = 10 + pin.highlight * 8;
+
+          const pGrad = ctx.createRadialGradient(pin.x - 2, pin.y - 2, 2, pin.x, pin.y, pin.radius * 1.35);
+          pGrad.addColorStop(0, '#f5d0fe');
+          pGrad.addColorStop(0.5, '#c026d3');
+          pGrad.addColorStop(1, '#701a75');
+          ctx.fillStyle = pGrad;
+          ctx.beginPath();
+          ctx.arc(pin.x, pin.y, pin.radius * 1.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.lineWidth = 1.3;
+          ctx.strokeStyle = '#fef08a';
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${pin.radius * 1.5}px Pretendard, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('?', pin.x, pin.y);
+        } else {
+          ctx.shadowColor = pin.highlight > 0 ? '#fff3a8' : 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = pin.highlight > 0 ? 10 : 2.5;
+
+          const gGrad = ctx.createRadialGradient(pin.x - 1.5, pin.y - 1.5, 1, pin.x, pin.y, pin.radius);
+          gGrad.addColorStop(0, '#fffbe6');
+          gGrad.addColorStop(0.4, '#fcd34d');
+          gGrad.addColorStop(0.9, '#b45309');
+          gGrad.addColorStop(1, '#78350f');
+
+          ctx.fillStyle = gGrad;
+          ctx.beginPath();
+          ctx.arc(pin.x, pin.y, pin.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      shockwaves.forEach((sw, idx) => {
+        sw.radius += 2.2;
+        sw.alpha -= 0.035;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(217, 70, 239, ${Math.max(sw.alpha, 0)})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+        if (sw.alpha <= 0) shockwaves.splice(idx, 1);
+      });
+
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.gravity) p.vy += p.gravity;
+        p.life -= p.decay;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+
+        if (p.isStar) {
+          p.rot += p.vRot || 0.1;
+          drawStar(ctx, p.x, p.y, 4, p.size * 1.8, p.size * 0.65, p.rot);
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        if (p.life <= 0) particles.splice(idx, 1);
+      });
+
+      if (ball) {
+        ball.update();
+        ball.draw();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      ball = new Ball();
+      shuffleMenus();
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // 카테고리 탭 클릭 리스너
+      const catButtons = document.querySelectorAll('.cat-btn');
+      catButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isDropping) return;
+          catButtons.forEach(b => {
+            b.className = "cat-btn px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[11px] whitespace-nowrap hover:bg-slate-700";
+          });
+          btn.className = "cat-btn px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] whitespace-nowrap shadow";
+          currentCategory = btn.dataset.cat;
+          shuffleMenus();
+        });
+      });
+
+      // 슬롯 수 변경 버튼 리스너
+      const countButtons = document.querySelectorAll('.slot-cnt-btn');
+      countButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isDropping) return;
+          countButtons.forEach(b => {
+            b.className = "slot-cnt-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-black font-bold";
+          });
+          btn.className = "slot-cnt-btn px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-black shadow";
+          slotCount = parseInt(btn.dataset.count);
+          shuffleMenus();
+          setupPins();
+        });
+      });
+
+      // 메뉴 셔플 버튼
+      document.getElementById('shuffleBtn').addEventListener('click', () => {
+        if (isDropping) return;
+        shuffleMenus();
+        randomizeSpecialPin();
+      });
+
+      // 공 떨어뜨리기 버튼
+      document.getElementById('dropBtn').addEventListener('click', () => {
+        if (isDropping) return;
+        isDropping = true;
+        document.getElementById('dropBtn').disabled = true;
+        randomizeSpecialPin();
+        resetBoardState();
+        getAudioCtx();
+        ball.start();
+      });
+
+      // 사운드 토글
+      const soundBtn = document.getElementById('soundToggleBtn');
+      soundBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
+        document.getElementById('soundText').textContent = soundEnabled ? '소리 ON' : '음소거';
+      });
+
+      render();
+    });
+  </script>
+</body>
+</html>
